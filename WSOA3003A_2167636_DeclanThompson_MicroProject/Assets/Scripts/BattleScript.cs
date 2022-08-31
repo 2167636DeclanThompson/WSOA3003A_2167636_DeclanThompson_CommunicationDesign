@@ -49,6 +49,9 @@ public class BattleScript : MonoBehaviour
     public AudioSource Fireball;
     public AudioSource enemyCrit;
     public AudioSource playerCrit;
+
+    public Text Health;
+    public Text Magic;
          
 
     private void Start()
@@ -173,21 +176,66 @@ public class BattleScript : MonoBehaviour
         {
             if (playerUnit.currentMP >= 5)
             {
-                playerUnit.Heal(15);
-                playerUnit.MP(5);
+                int HealNum;
+                HealNum = Random.Range(0, 11);
 
-                playerHUD.SetHP(playerUnit.currentHP);
-                playerHUD.SetMP(playerUnit.currentMP);
+                if (HealNum == 0)
+                {
+                    playerUnit.MP(5);
+                    playerHUD.SetMP(playerUnit.currentMP);
+                    Magic.text = playerUnit.currentMP.ToString();
+                    dialogue.text = "The spell fizzles out!";
+                    yield return new WaitForSeconds(2f);
+                    state = BattleState.ENEMYTURN;
+                    StartCoroutine(EnemyTurn());
+                }
+                else if (HealNum == 10)
+                {
+                    dialogue.text = "The Spell goes haywire!";
+                    yield return new WaitForSeconds(2f);
 
-                dialogue.text = "You heal 15 points of Health";
-                playerHeal.Play();
-                cam.backgroundColor = green;
+                    playerUnit.Heal(playerUnit.MagicAttack * 2);
+                    playerUnit.MP(5);
 
-                yield return new WaitForSeconds(2f);
+                    playerHUD.SetHP(playerUnit.currentHP);
+                    playerHUD.SetMP(playerUnit.currentMP);
 
-                cam.backgroundColor = black;
-                state = BattleState.ENEMYTURN;
-                StartCoroutine(EnemyTurn());
+                    Health.text = playerUnit.currentHP.ToString();
+                    Magic.text = playerUnit.currentMP.ToString();
+
+                    dialogue.text = "You heal " + (playerUnit.MagicAttack * 2) + " points of Health";
+                    playerHeal.Play();
+                    cam.backgroundColor = green;
+
+                    yield return new WaitForSeconds(2f);
+
+                    cam.backgroundColor = black;
+                    state = BattleState.ENEMYTURN;
+                    StartCoroutine(EnemyTurn());
+                }
+                else
+                {
+                    playerUnit.Heal(playerUnit.MagicAttack);
+                    playerUnit.MP(5);
+
+                    playerHUD.SetHP(playerUnit.currentHP);
+                    playerHUD.SetMP(playerUnit.currentMP);
+
+                    Health.text = playerUnit.currentHP.ToString();
+                    Magic.text = playerUnit.currentMP.ToString();
+
+                    dialogue.text = "You heal " + (playerUnit.MagicAttack) + " points of Health";
+                    playerHeal.Play();
+                    cam.backgroundColor = green;
+
+                    yield return new WaitForSeconds(2f);
+
+                    cam.backgroundColor = black;
+                    state = BattleState.ENEMYTURN;
+                    StartCoroutine(EnemyTurn());
+                }
+
+
             }
             else
             {
@@ -199,34 +247,61 @@ public class BattleScript : MonoBehaviour
         {
             dialogue.text = "You are already at full HP!";
         }
-        
-        
+
+
 
     }
 
     IEnumerator PlayerMagic()
     {
-        
+
         if (playerUnit.currentMP >= 8)
         {
             int MagicNumber;
             MagicNumber = Random.Range(0, 11);
 
-            if (MagicNumber == 1)
+            if (MagicNumber == 0)
             {
-                playerUnit.MP(8);
+                playerUnit.MP(10);
                 playerHUD.SetMP(playerUnit.currentMP);
+                Magic.text = playerUnit.currentMP.ToString();
                 dialogue.text = "The spell fizzles out!";
                 yield return new WaitForSeconds(2f);
                 state = BattleState.ENEMYTURN;
                 StartCoroutine(EnemyTurn());
 
             }
+            else if (MagicNumber == 10)
+            {
+                bool isDead = enemyUnit.MagicDamage(playerUnit.MagicAttack * 2);
+                playerUnit.MP(10);
+                playerHUD.SetMP(playerUnit.currentMP);
+                Magic.text = playerUnit.currentMP.ToString();
+                dialogue.text = "The Spell goes haywire!";
+                yield return new WaitForSeconds(2f);
+                dialogue.text = "Demon King takes " + (playerUnit.MagicAttack * 2) + " magic damage!";
+                Fireball.Play();
+                GameObject playerHit = Instantiate(explosion, enemyShadow);
+
+                yield return new WaitForSeconds(2f);
+
+                if (isDead)
+                {
+                    state = BattleState.WON;
+                    EndBattle();
+                }
+                else
+                {
+                    state = BattleState.ENEMYTURN;
+                    StartCoroutine(EnemyTurn());
+                }
+            }
             else
             {
                 bool isDead = enemyUnit.MagicDamage(playerUnit.MagicAttack);
-                playerUnit.MP(8);
+                playerUnit.MP(10);
                 playerHUD.SetMP(playerUnit.currentMP);
+                Magic.text = playerUnit.currentMP.ToString();
 
                 dialogue.text = "Demon King takes " + (playerUnit.MagicAttack) + " magic damage!";
                 Fireball.Play();
@@ -246,13 +321,12 @@ public class BattleScript : MonoBehaviour
                 }
             }
 
-            
-        }        
+
+        }
         else
         {
             dialogue.text = "You dont have enough MP!";
         }
-
     }
 
     IEnumerator PlayerFlee()
@@ -294,6 +368,7 @@ public class BattleScript : MonoBehaviour
             OnCamShake();
 
             playerHUD.SetHP(playerUnit.currentHP);
+            Health.text = playerUnit.currentHP.ToString();
 
             yield return new WaitForSeconds(1f);
             cam.backgroundColor = black;
@@ -334,6 +409,7 @@ public class BattleScript : MonoBehaviour
             OnCamShake();
 
             playerHUD.SetHP(playerUnit.currentHP);
+            Health.text = playerUnit.currentHP.ToString();
 
             yield return new WaitForSeconds(1f);
 
@@ -362,7 +438,7 @@ public class BattleScript : MonoBehaviour
     {
         if (state == BattleState.WON)
         {
-            enemy.SetActive(false);
+            Destroy(enemyShadow.gameObject);
             dialogue.text = "You are victorious!";
             cam.backgroundColor = green;
             playerWin.Play();
